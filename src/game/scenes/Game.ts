@@ -1,6 +1,8 @@
 import { EventBus } from "../EventBus";
 import { Scene } from "phaser";
-import { Train, addTrain } from "../prefabs/Train";
+import { Train } from "../prefabs/Train";
+import { Rail } from "../prefabs/Rail";
+import { Station } from "../prefabs/Station";
 
 export class Game extends Scene {
     camera: Phaser.Cameras.Scene2D.Camera;
@@ -8,6 +10,8 @@ export class Game extends Scene {
     gameText: Phaser.GameObjects.Text;
 
     trains: Train[] = [];
+    rails: Rail[] = [];
+    stations: Station[] = [];
 
     constructor() {
         super("Game");
@@ -39,13 +43,33 @@ export class Game extends Scene {
 
         EventBus.emit("current-scene-ready", this);
 
-        this.trains.push(addTrain(this.scene));
+        for (let i = 0; i < 10; i++) {
+            const rail = new Rail(this, i * 64, 4 * 64, 90);
+            this.rails.push(rail);
+        }
+
+        const train = new Train(this, -64, 4 * 64);
+        train.route = [
+            { x: 64, y: 4 * 64, dwellTime: 500 },
+            { x: 8 * 64, y: 4 * 64, dwellTime: 500 },
+        ];
+        this.trains.push(train);
+        train.start(this);
+
+        const leftStation = new Station(this, 64, 3 * 64);
+        const rightStation = new Station(this, 8 * 64, 3 * 64);
+        this.stations.push(leftStation);
+        this.stations.push(rightStation);
     }
 
     changeScene() {
         this.scene.start("GameOver");
     }
 
-    update() {}
+    update(time: number, delta: number) {
+        for (const train of this.trains) {
+            train.update(this, delta);
+        }
+    }
 }
 

@@ -1,15 +1,61 @@
 import { Scene } from "phaser";
 
-export const addTrain = (scene: Scene | Phaser.Scenes.ScenePlugin) => {
-    const x = Phaser.Math.Between(64, scene.scale.width - 64);
-    const y = Phaser.Math.Between(64, scene.scale.height - 64);
+export class Train extends Phaser.Physics.Arcade.Sprite {
+    route: { x: number; y: number; dwellTime: number }[] = [];
+    routeIndex = 0;
+    speed = 200;
 
-    const train = scene.add.sprite(x, y, "star");
+    isDwelling = false;
+    currentDwellTime = 0;
 
-    return train;
-};
+    constructor(scene: Scene, x: number, y: number) {
+        super(scene, x, y, "star");
+        scene.physics.add.existing(this);
+        this.scene.add.existing(this);
+    }
 
-export type Train = {
-    x: number;
-    y: number;
-};
+    getNextStop = () => this.route[this.routeIndex];
+
+    followNextStop = () => {
+        if (this.routeIndex >= this.route.length - 1) {
+            this.routeIndex = 0;
+        } else {
+            this.routeIndex++;
+        }
+
+        return this.routeIndex;
+    };
+
+    resetDwelling = () => {
+        this.isDwelling = false;
+        this.currentDwellTime = 0;
+    };
+
+    start = (scene: Scene) => {
+        const next = this.getNextStop();
+        scene.physics.moveTo(this, next.x, next.y, this.speed);
+    };
+
+    update = (scene: Scene, delta: number) => {
+        let next = this.getNextStop();
+
+        if (this.isDwelling) {
+            this.currentDwellTime += delta;
+
+            if (this.currentDwellTime > next.dwellTime) {
+                this.followNextStop();
+                next = this.getNextStop();
+                this.resetDwelling();
+                scene.physics.moveTo(this, next.x, next.y, this.speed);
+            }
+        } else {
+            if (
+                Phaser.Math.Distance.Between(this.x, this.y, next.x, next.y) <
+                10
+            ) {
+                this.isDwelling = true;
+                this.setVelocity(0, 0);
+            }
+        }
+    };
+}
