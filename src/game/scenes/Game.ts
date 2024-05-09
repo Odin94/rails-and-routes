@@ -47,10 +47,22 @@ export class Game extends Scene {
             const rail = new Rail(this, i * 64, 4 * 64, 90);
             this.rails.push(rail);
         }
+        for (let i = 0; i < 5; i++) {
+            const rail = new Rail(this, 4 * 64, (5 + i) * 64, 0);
+            this.rails.push(rail);
+        }
 
         const train = new Train(this, -64, 4 * 64);
         train.route = [
+            // Left station
             { x: 64, y: 4 * 64, dwellTime: 500 },
+
+            // switch + bottom station
+            { x: 4 * 64, y: 4 * 64, dwellTime: 0 },
+            { x: 4 * 64, y: 8 * 64, dwellTime: 500 },
+            { x: 4 * 64, y: 4 * 64, dwellTime: 0 },
+
+            // right station
             { x: 8 * 64, y: 4 * 64, dwellTime: 500 },
         ];
         this.trains.push(train);
@@ -58,8 +70,10 @@ export class Game extends Scene {
 
         const leftStation = new Station(this, 64, 3 * 64);
         const rightStation = new Station(this, 8 * 64, 3 * 64);
+        const bottomStation = new Station(this, 3 * 64, 8 * 64);
         this.stations.push(leftStation);
         this.stations.push(rightStation);
+        this.stations.push(bottomStation);
     }
 
     changeScene() {

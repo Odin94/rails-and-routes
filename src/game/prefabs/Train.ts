@@ -37,6 +37,15 @@ export class Train extends Phaser.Physics.Arcade.Sprite {
         scene.physics.moveTo(this, next.x, next.y, this.speed);
     };
 
+    alignAngle = () => {
+        this.angle = 0;
+        this.flipX = false;
+        // Adding 5 to everything because movement vectors aren't perfect
+        if ((this.body?.velocity.x ?? 0) + 5 < 0) this.flipX = true;
+        if ((this.body?.velocity.y ?? 0) + 5 < 0) this.angle = 270;
+        if ((this.body?.velocity.y ?? 0) - 5 > 0) this.angle = 90;
+    };
+
     update = (scene: Scene, delta: number) => {
         let next = this.getNextStop();
 
@@ -48,6 +57,7 @@ export class Train extends Phaser.Physics.Arcade.Sprite {
                 next = this.getNextStop();
                 this.resetDwelling();
                 scene.physics.moveTo(this, next.x, next.y, this.speed);
+                this.alignAngle();
             }
         } else {
             if (
@@ -55,6 +65,9 @@ export class Train extends Phaser.Physics.Arcade.Sprite {
                 10
             ) {
                 this.isDwelling = true;
+                // Set perfect position to avoid weird numbers in next velocity
+                this.x = next.x;
+                this.y = next.y;
                 this.setVelocity(0, 0);
             }
         }
