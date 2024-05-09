@@ -9,9 +9,10 @@ export class Train extends Phaser.Physics.Arcade.Sprite {
     currentDwellTime = 0;
 
     constructor(scene: Scene, x: number, y: number) {
-        super(scene, x, y, "star");
+        super(scene, x, y, "train");
         scene.physics.add.existing(this);
         this.scene.add.existing(this);
+        this.setScale(2);
     }
 
     getNextStop = () => this.route[this.routeIndex];

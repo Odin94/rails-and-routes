@@ -30,6 +30,7 @@ export class Preloader extends Scene {
         this.load.image("star", "star.png");
         this.load.image("rails", "rails.png");
         this.load.image("station", "station.png");
+        this.load.image("train", "train.png");
     }
 
     create() {
