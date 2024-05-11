@@ -68,15 +68,17 @@ export class Game extends Scene {
             );
         const activePath = findPath(
             railUnderTrain,
-            train.route[0].stationName,
+            train.route[2].stationName,
             this.rails
         );
         train.start(this, activePath);
         console.log({
             rails: this.rails.map((r) => {
                 return {
+                    x: r.gridX,
+                    y: r.gridY,
                     n: r.neighbours,
-                    s: r.connectedStation,
+                    s: r.connectedStation?.name,
                 };
             }),
         });

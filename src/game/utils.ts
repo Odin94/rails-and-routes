@@ -13,37 +13,62 @@ export const sameGridPos = (a: GridObject, b: GridObject) =>
     absDiffGridPos(a, b) === 0;
 
 export const findPath = (rail: Rail, stationName: string, rails: Rail[]) => {
+    type Node = {
+        parent?: Node;
+        rail: Rail;
+    };
     const stationRail = rails.find(
         (r) => r.connectedStation?.name === stationName
     );
     console.error("No station rail!");
     if (!stationRail) return [];
+    const stationRailNode: Node = { parent: undefined, rail: stationRail };
+    console.log(
+        "Looking for path to " +
+            stationName +
+            " which is at " +
+            stationRail.gridX +
+            " / " +
+            stationRail.gridY
+    );
 
-    const queue = [rail];
-    const visited = new Set();
+    const queue: Node[] = [{ parent: undefined, rail: rail }];
+    const visited = new Set<Rail>();
     const result = [];
 
     // Note: This only finds the optimal path for unweighted edges. If we ever have eg. speed restrictions or expected waiting time on some rails
     // We need to use Dijkstra's BFS algorithm instead
     while (queue.length) {
         const node = queue.shift()!;
+        console.log(`Looking at ${node.rail.gridX} / ${node.rail.gridY}`);
 
-        if (!visited.has(node)) {
-            visited.add(node);
-            result.push({
-                x: node.x,
-                y: node.y,
-                dwellTime:
-                    node == stationRail
-                        ? stationRail.connectedStation!.dwellTime
+        if (node.rail.connectedStation?.name === stationName) {
+            let n = node;
+            const result = [];
+            while (n.parent) {
+                result.push({
+                    x: n.rail.x,
+                    y: n.rail.y,
+                    dwellTime: sameGridPos(n.rail, stationRail)
+                        ? stationRailNode.rail.connectedStation!.dwellTime
                         : 0,
-            });
+                });
 
-            for (const neighbor of node.neighbours) {
-                queue.push(neighbor);
+                n = n.parent;
+            }
+
+            return result.reverse();
+        }
+
+        if (!visited.has(node.rail)) {
+            visited.add(node.rail);
+
+            for (const neighbor of node.rail.neighbours) {
+                queue.push({ parent: node, rail: neighbor });
             }
         }
     }
 
-    return result;
+    console.error("No path found!");
+    return [];
 };
