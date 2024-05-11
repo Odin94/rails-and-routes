@@ -1,4 +1,4 @@
-import { GameObjects, Scene } from "phaser";
+import { GameObjects, Scene, Tweens } from "phaser";
 
 import { EventBus } from "../EventBus";
 
@@ -6,7 +6,7 @@ export class MainMenu extends Scene {
     background: GameObjects.Image;
     logo: GameObjects.Image;
     title: GameObjects.Text;
-    logoTween: Phaser.Tweens.Tween | null;
+    logoTween: Tweens.Tween | null;
 
     constructor() {
         super("MainMenu");

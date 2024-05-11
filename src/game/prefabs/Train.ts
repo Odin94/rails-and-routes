@@ -1,6 +1,6 @@
-import { Scene } from "phaser";
+import { Scene, Math as pMath, Physics } from "phaser";
 
-export class Train extends Phaser.Physics.Arcade.Sprite {
+export class Train extends Physics.Arcade.Sprite {
     route: { x: number; y: number; dwellTime: number }[] = [];
     routeIndex = 0;
     speed = 200;
@@ -60,10 +60,7 @@ export class Train extends Phaser.Physics.Arcade.Sprite {
                 this.alignAngle();
             }
         } else {
-            if (
-                Phaser.Math.Distance.Between(this.x, this.y, next.x, next.y) <
-                10
-            ) {
+            if (pMath.Distance.Between(this.x, this.y, next.x, next.y) < 10) {
                 this.isDwelling = true;
                 // Set perfect position to avoid weird numbers in next velocity
                 this.x = next.x;

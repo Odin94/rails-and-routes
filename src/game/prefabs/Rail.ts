@@ -1,6 +1,6 @@
-import { Scene } from "phaser";
+import { Scene, GameObjects } from "phaser";
 
-export class Rail extends Phaser.GameObjects.Sprite {
+export class Rail extends GameObjects.Sprite {
     constructor(scene: Scene, x: number, y: number, angle = 0) {
         super(scene, x, y, "rails");
         this.angle = angle;
@@ -8,3 +8,9 @@ export class Rail extends Phaser.GameObjects.Sprite {
         this.scene.add.existing(this);
     }
 }
+
+export const createRailway = (
+    scene: Scene,
+    from: { x: number; y: number },
+    to: { x: number; y: number }
+) => {};
