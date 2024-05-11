@@ -1,8 +1,9 @@
 import { EventBus } from "../EventBus";
 import { Scene, Cameras, GameObjects } from "phaser";
 import { Train } from "../prefabs/Train";
-import { Rail } from "../prefabs/Rail";
+import { Rail, buildRailNetwork, createStraightRailway } from "../prefabs/Rail";
 import { Station } from "../prefabs/Station";
+import { absDiffGridPos, findPath, sameGridPos } from "../utils";
 
 export class Game extends Scene {
     camera: Cameras.Scene2D.Camera;
@@ -24,56 +25,61 @@ export class Game extends Scene {
         this.background = this.add.image(512, 384, "background");
         this.background.setAlpha(0.5);
 
-        // this.gameText = this.add
-        //     .text(
-        //         512,
-        //         384,
-        //         "Make something fun!\nand share it with us:\nsupport@phaser.io",
-        //         {
-        //             fontFamily: "Arial Black",
-        //             fontSize: 38,
-        //             color: "#ffffff",
-        //             stroke: "#000000",
-        //             strokeThickness: 8,
-        //             align: "center",
-        //         }
-        //     )
-        //     .setOrigin(0.5)
-        //     .setDepth(100);
+        // Create rail network where rails know their neighbors and stations -> paths can be graph searched
+        // Build routes based on stations
 
         EventBus.emit("current-scene-ready", this);
 
-        for (let i = 0; i < 10; i++) {
-            const rail = new Rail(this, i * 64, 4 * 64, 90);
-            this.rails.push(rail);
-        }
-        for (let i = 0; i < 5; i++) {
-            const rail = new Rail(this, 4 * 64, (5 + i) * 64, 0);
-            this.rails.push(rail);
-        }
+        this.rails.push(
+            ...createStraightRailway(this, { x: 0, y: 4 }, { x: 10, y: 4 }),
+            ...createStraightRailway(this, { x: 4, y: 5 }, { x: 4, y: 10 })
+        );
 
-        const train = new Train(this, -64, 4 * 64);
+        const train = new Train(this, 0, 4 * 64);
         train.route = [
-            // Left station
-            { x: 64, y: 4 * 64, dwellTime: 500 },
+            { stationName: "Leftington" },
+            { stationName: "Centropton" },
+            { stationName: "Bolevian" },
+            // // Left station
+            // { x: 64, y: 4 * 64, dwellTime: 500 },
 
-            // switch + bottom station
-            { x: 4 * 64, y: 4 * 64, dwellTime: 0 },
-            { x: 4 * 64, y: 8 * 64, dwellTime: 500 },
-            { x: 4 * 64, y: 4 * 64, dwellTime: 0 },
+            // // switch + bottom station
+            // { x: 4 * 64, y: 4 * 64, dwellTime: 0 },
+            // { x: 4 * 64, y: 8 * 64, dwellTime: 500 },
+            // { x: 4 * 64, y: 4 * 64, dwellTime: 0 },
 
-            // right station
-            { x: 8 * 64, y: 4 * 64, dwellTime: 500 },
+            // // right station
+            // { x: 8 * 64, y: 4 * 64, dwellTime: 500 },
         ];
         this.trains.push(train);
-        train.start(this);
+        this.stations.push(
+            ...[
+                new Station(this, "Leftington", 64, 3 * 64),
+                new Station(this, "Centropton", 8 * 64, 3 * 64),
+                new Station(this, "Bolevian", 3 * 64, 8 * 64),
+            ]
+        );
 
-        const leftStation = new Station(this, 64, 3 * 64);
-        const rightStation = new Station(this, 8 * 64, 3 * 64);
-        const bottomStation = new Station(this, 3 * 64, 8 * 64);
-        this.stations.push(leftStation);
-        this.stations.push(rightStation);
-        this.stations.push(bottomStation);
+        buildRailNetwork(this.rails, this.stations);
+        const railUnderTrain = this.rails.find((r) => sameGridPos(train, r));
+        if (!railUnderTrain)
+            throw new Error(
+                `Rail under train is undefined for train with coords: ${train.gridX} / ${train.gridY}`
+            );
+        const activePath = findPath(
+            railUnderTrain,
+            train.route[0].stationName,
+            this.rails
+        );
+        train.start(this, activePath);
+        console.log({
+            rails: this.rails.map((r) => {
+                return {
+                    n: r.neighbours,
+                    s: r.connectedStation,
+                };
+            }),
+        });
     }
 
     changeScene() {

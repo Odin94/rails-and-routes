@@ -1,7 +1,15 @@
 import { Scene, Math as pMath, Physics } from "phaser";
 
+export const TRAIN_GRID_SIZE = 64;
+
+export type ActivePath = { x: number; y: number; dwellTime: number }[];
+
 export class Train extends Physics.Arcade.Sprite {
-    route: { x: number; y: number; dwellTime: number }[] = [];
+    gridX: number;
+    gridY: number;
+
+    route: { stationName: string }[] = [];
+    activePath: ActivePath = [];
     routeIndex = 0;
     speed = 200;
 
@@ -13,12 +21,15 @@ export class Train extends Physics.Arcade.Sprite {
         scene.physics.add.existing(this);
         this.scene.add.existing(this);
         this.setScale(2);
+
+        this.gridX = x / TRAIN_GRID_SIZE;
+        this.gridY = y / TRAIN_GRID_SIZE;
     }
 
-    getNextStop = () => this.route[this.routeIndex];
+    getNextStop = () => this.activePath[this.routeIndex];
 
     followNextStop = () => {
-        if (this.routeIndex >= this.route.length - 1) {
+        if (this.routeIndex >= this.activePath.length - 1) {
             this.routeIndex = 0;
         } else {
             this.routeIndex++;
@@ -32,9 +43,10 @@ export class Train extends Physics.Arcade.Sprite {
         this.currentDwellTime = 0;
     };
 
-    start = (scene: Scene) => {
+    start = (scene: Scene, activePath: ActivePath) => {
+        this.activePath = activePath;
         const next = this.getNextStop();
-        scene.physics.moveTo(this, next.x, next.y, this.speed);
+        if (next) scene.physics.moveTo(this, next.x, next.y, this.speed);
     };
 
     alignAngle = () => {
@@ -48,6 +60,7 @@ export class Train extends Physics.Arcade.Sprite {
 
     update = (scene: Scene, delta: number) => {
         let next = this.getNextStop();
+        if (!next) return;
 
         if (this.isDwelling) {
             this.currentDwellTime += delta;
