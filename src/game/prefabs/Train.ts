@@ -1,4 +1,6 @@
 import { Scene, Math as pMath, Physics } from "phaser";
+import { Rail } from "./Rail";
+import { findPath, sameGridPos } from "../utils";
 
 export const TRAIN_GRID_SIZE = 64;
 
@@ -9,12 +11,17 @@ export class Train extends Physics.Arcade.Sprite {
     gridY: number;
 
     route: { stationName: string }[] = [];
-    activePath: ActivePath = [];
     routeIndex = 0;
+
+    activePath: ActivePath = [];
+    activePathIndex = 0;
+
     speed = 200;
 
     isDwelling = false;
     currentDwellTime = 0;
+
+    rails: Rail[] = [];
 
     constructor(scene: Scene, x: number, y: number) {
         super(scene, x, y, "train");
@@ -26,16 +33,42 @@ export class Train extends Physics.Arcade.Sprite {
         this.gridY = y / TRAIN_GRID_SIZE;
     }
 
-    getNextStop = () => this.activePath[this.routeIndex];
+    startOnRoute = () => {
+        const railUnderTrain = this.rails.find((r) => sameGridPos(this, r));
+        console.log({ x: railUnderTrain?.gridX, y: railUnderTrain?.gridY });
+        if (!railUnderTrain)
+            throw new Error(
+                `Rail under train is undefined for train with coords: ${this.gridX} / ${this.gridY}`
+            );
+        this.activePath = findPath(
+            railUnderTrain,
+            this.route[this.routeIndex].stationName,
+            this.rails
+        );
+        this.activePathIndex = 0;
+    };
+
+    getNextStop = () => this.activePath[this.activePathIndex];
 
     followNextStop = () => {
-        if (this.routeIndex >= this.activePath.length - 1) {
-            this.routeIndex = 0;
+        if (this.activePathIndex >= this.activePath.length - 1) {
+            console.log(
+                "Arrived at " + this.route[this.routeIndex].stationName
+            );
+            this.routeIndex =
+                this.routeIndex >= this.route.length - 1
+                    ? 0
+                    : this.routeIndex + 1;
+            this.startOnRoute();
+            console.log(
+                "Moving on to " + this.route[this.routeIndex].stationName
+            );
+            console.log({ path: this.activePath });
         } else {
-            this.routeIndex++;
+            this.activePathIndex++;
         }
 
-        return this.routeIndex;
+        return this.activePathIndex;
     };
 
     resetDwelling = () => {
@@ -43,8 +76,8 @@ export class Train extends Physics.Arcade.Sprite {
         this.currentDwellTime = 0;
     };
 
-    start = (scene: Scene, activePath: ActivePath) => {
-        this.activePath = activePath;
+    start = (scene: Scene) => {
+        this.startOnRoute();
         const next = this.getNextStop();
         if (next) scene.physics.moveTo(this, next.x, next.y, this.speed);
     };
@@ -59,6 +92,9 @@ export class Train extends Physics.Arcade.Sprite {
     };
 
     update = (scene: Scene, delta: number) => {
+        this.gridX = Math.round(this.x / TRAIN_GRID_SIZE);
+        this.gridY = Math.round(this.y / TRAIN_GRID_SIZE);
+
         let next = this.getNextStop();
         if (!next) return;
 

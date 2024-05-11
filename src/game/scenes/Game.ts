@@ -61,27 +61,19 @@ export class Game extends Scene {
         );
 
         buildRailNetwork(this.rails, this.stations);
-        const railUnderTrain = this.rails.find((r) => sameGridPos(train, r));
-        if (!railUnderTrain)
-            throw new Error(
-                `Rail under train is undefined for train with coords: ${train.gridX} / ${train.gridY}`
-            );
-        const activePath = findPath(
-            railUnderTrain,
-            train.route[2].stationName,
-            this.rails
-        );
-        train.start(this, activePath);
-        console.log({
-            rails: this.rails.map((r) => {
-                return {
-                    x: r.gridX,
-                    y: r.gridY,
-                    n: r.neighbours,
-                    s: r.connectedStation?.name,
-                };
-            }),
-        });
+        // const railUnderTrain = this.rails.find((r) => sameGridPos(train, r));
+        // if (!railUnderTrain)
+        //     throw new Error(
+        //         `Rail under train is undefined for train with coords: ${train.gridX} / ${train.gridY}`
+        //     );
+        train.rails = this.rails;
+        // todo update active path when station reached
+        // const activePath = findPath(
+        //     railUnderTrain,
+        //     train.route[2].stationName,
+        //     this.rails
+        // );
+        train.start(this);
     }
 
     changeScene() {

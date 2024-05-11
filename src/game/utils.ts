@@ -12,7 +12,11 @@ export const absDiffGridPos = (a: GridObject, b: GridObject) =>
 export const sameGridPos = (a: GridObject, b: GridObject) =>
     absDiffGridPos(a, b) === 0;
 
-export const findPath = (rail: Rail, stationName: string, rails: Rail[]) => {
+export const findPath = (
+    startRail: Rail,
+    stationName: string,
+    rails: Rail[]
+) => {
     type Node = {
         parent?: Node;
         rail: Rail;
@@ -20,19 +24,13 @@ export const findPath = (rail: Rail, stationName: string, rails: Rail[]) => {
     const stationRail = rails.find(
         (r) => r.connectedStation?.name === stationName
     );
-    console.error("No station rail!");
-    if (!stationRail) return [];
+    if (!stationRail) {
+        console.error(`No station rail for station ${stationName}!`);
+        return [];
+    }
     const stationRailNode: Node = { parent: undefined, rail: stationRail };
-    console.log(
-        "Looking for path to " +
-            stationName +
-            " which is at " +
-            stationRail.gridX +
-            " / " +
-            stationRail.gridY
-    );
 
-    const queue: Node[] = [{ parent: undefined, rail: rail }];
+    const queue: Node[] = [{ parent: undefined, rail: startRail }];
     const visited = new Set<Rail>();
     const result = [];
 
@@ -40,7 +38,6 @@ export const findPath = (rail: Rail, stationName: string, rails: Rail[]) => {
     // We need to use Dijkstra's BFS algorithm instead
     while (queue.length) {
         const node = queue.shift()!;
-        console.log(`Looking at ${node.rail.gridX} / ${node.rail.gridY}`);
 
         if (node.rail.connectedStation?.name === stationName) {
             let n = node;
@@ -56,6 +53,14 @@ export const findPath = (rail: Rail, stationName: string, rails: Rail[]) => {
 
                 n = n.parent;
             }
+            // Push startRail-node as well so we never have an empty path if train is already at station
+            result.push({
+                x: n.rail.x,
+                y: n.rail.y,
+                dwellTime: sameGridPos(n.rail, stationRail)
+                    ? stationRailNode.rail.connectedStation!.dwellTime
+                    : 0,
+            });
 
             return result.reverse();
         }
