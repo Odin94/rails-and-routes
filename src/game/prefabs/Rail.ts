@@ -1,6 +1,6 @@
 import { Scene, GameObjects } from "phaser";
 import { Station } from "./Station";
-import { absDiffGridPos } from "../utils";
+import { absGridPosDiff } from "../utils";
 
 export const RAIL_GRID_SIZE = 64;
 
@@ -30,7 +30,7 @@ export const createStraightRailway = (
 ) => {
     const rails = [];
     if (gridFrom.x === gridTo.x) {
-        for (let i = gridFrom.y; i < gridTo.y; i++) {
+        for (let i = gridFrom.y; i <= gridTo.y; i++) {
             const rail = new Rail(
                 scene,
                 gridFrom.x * RAIL_GRID_SIZE,
@@ -62,9 +62,9 @@ export const createStraightRailway = (
 
 export const buildRailNetwork = (rails: Rail[], stations: Station[]) => {
     for (const rail of rails) {
-        rail.neighbours = rails.filter((r) => absDiffGridPos(r, rail) === 1);
+        rail.neighbours = rails.filter((r) => absGridPosDiff(r, rail) === 1);
         rail.connectedStation = stations.find(
-            (s) => absDiffGridPos(s, rail) === 1
+            (s) => absGridPosDiff(s, rail) === 1
         );
         if (rail.connectedStation) rail.connectedStation.rail = rail;
     }

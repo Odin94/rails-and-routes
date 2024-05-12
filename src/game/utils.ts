@@ -6,11 +6,11 @@ type GridObject = Train | Rail | Station;
 
 export const absDiff = (a: number, b: number) => (a > b ? a - b : b - a);
 
-export const absDiffGridPos = (a: GridObject, b: GridObject) =>
+export const absGridPosDiff = (a: GridObject, b: GridObject) =>
     absDiff(a.gridX, b.gridX) + absDiff(a.gridY, b.gridY);
 
 export const sameGridPos = (a: GridObject, b: GridObject) =>
-    absDiffGridPos(a, b) === 0;
+    absGridPosDiff(a, b) === 0;
 
 export const findPath = (
     startRail: Rail,

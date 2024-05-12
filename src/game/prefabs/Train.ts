@@ -1,6 +1,7 @@
 import { Scene, Math as pMath, Physics } from "phaser";
 import { Rail } from "./Rail";
 import { findPath, sameGridPos } from "../utils";
+import { Station } from "./Station";
 
 export const TRAIN_GRID_SIZE = 64;
 
@@ -21,7 +22,10 @@ export class Train extends Physics.Arcade.Sprite {
     isDwelling = false;
     currentDwellTime = 0;
 
+    isWaitingForResource = false;
+
     rails: Rail[] = [];
+    stations: Station[] = [];
 
     constructor(scene: Scene, x: number, y: number) {
         super(scene, x, y, "train");
@@ -71,6 +75,20 @@ export class Train extends Physics.Arcade.Sprite {
         return this.activePathIndex;
     };
 
+    getNextStation = () =>
+        this.stations.find(
+            (s) => s.name === this.route[this.routeIndex].stationName
+        );
+
+    isNextStopBlocked = () => {
+        const isBeforeStation =
+            this.activePathIndex === this.activePath.length - 1;
+        const isNextStationOccupied = this.getNextStation()?.occupiedBy.find(
+            (t) => t != this
+        );
+        return isBeforeStation && isNextStationOccupied;
+    };
+
     resetDwelling = () => {
         this.isDwelling = false;
         this.currentDwellTime = 0;
@@ -91,12 +109,8 @@ export class Train extends Physics.Arcade.Sprite {
         if ((this.body?.velocity.y ?? 0) - 5 > 0) this.angle = 90;
     };
 
-    update = (scene: Scene, delta: number) => {
-        this.gridX = Math.round(this.x / TRAIN_GRID_SIZE);
-        this.gridY = Math.round(this.y / TRAIN_GRID_SIZE);
-
+    updateDwelling = (scene: Scene, delta: number) => {
         let next = this.getNextStop();
-        if (!next) return;
 
         if (this.isDwelling) {
             this.currentDwellTime += delta;
@@ -117,5 +131,29 @@ export class Train extends Physics.Arcade.Sprite {
                 this.setVelocity(0, 0);
             }
         }
+    };
+
+    updateWaitingForResource = (scene: Scene) => {
+        const next = this.getNextStop();
+
+        if (this.isNextStopBlocked()) {
+            if (this.isWaitingForResource) return;
+            this.isWaitingForResource = true;
+            this.setVelocity(0, 0);
+        } else if (this.isWaitingForResource) {
+            this.isWaitingForResource = false;
+            scene.physics.moveTo(this, next.x, next.y, this.speed);
+        }
+    };
+
+    update = (scene: Scene, delta: number) => {
+        this.gridX = Math.round(this.x / TRAIN_GRID_SIZE);
+        this.gridY = Math.round(this.y / TRAIN_GRID_SIZE);
+
+        let next = this.getNextStop();
+        if (!next) return;
+
+        this.updateWaitingForResource(scene);
+        this.updateDwelling(scene, delta);
     };
 }
