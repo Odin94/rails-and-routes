@@ -104,9 +104,9 @@ export class Train extends Physics.Arcade.Sprite {
         this.angle = 0;
         this.flipX = false;
         // Adding 5 to everything because movement vectors aren't perfect
-        if ((this.body?.velocity.x ?? 0) + 5 < 0) this.flipX = true;
-        if ((this.body?.velocity.y ?? 0) + 5 < 0) this.angle = 270;
-        if ((this.body?.velocity.y ?? 0) - 5 > 0) this.angle = 90;
+        if ((this.body?.velocity.x ?? 0) + 15 < 0) this.flipX = true;
+        if ((this.body?.velocity.y ?? 0) + 15 < 0) this.angle = 270;
+        if ((this.body?.velocity.y ?? 0) - 15 > 0) this.angle = 90;
     };
 
     updateDwelling = (scene: Scene, delta: number) => {
