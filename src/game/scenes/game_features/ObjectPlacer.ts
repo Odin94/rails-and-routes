@@ -16,14 +16,23 @@ export const StationNameOptions = [
     "Dank memes",
 ];
 
+export const costs = {
+    rails: 500,
+    station: 4000,
+};
+
 export type ObjectPlacerType = {
     selectedPlacementObj: PlacementObjectType | null;
     selectedPlacementImage: GameObjects.Image | null;
     uiContainer: GameObjects.Container | null;
     update: (cam: Cameras.Scene2D.Camera, scene: Scene) => undefined;
     isPlacing: () => boolean;
-    placeSelectedObject: (sprites: SpriteCollection, scene: Scene) => undefined;
-    initialize: (sprites: SpriteCollection, scene: Scene) => undefined;
+    placeSelectedObject: (
+        sprites: SpriteCollection,
+        money: number,
+        scene: Scene
+    ) => number;
+    initialize: (scene: Scene) => undefined;
 };
 
 export const ObjectPlacer: ObjectPlacerType = {
@@ -58,9 +67,13 @@ export const ObjectPlacer: ObjectPlacerType = {
         return this.selectedPlacementObj !== null;
     },
 
-    placeSelectedObject: function (sprites: SpriteCollection, scene: Scene) {
-        if (!this.isPlacing()) return;
-        if (!this.selectedPlacementImage) return;
+    placeSelectedObject: function (
+        sprites: SpriteCollection,
+        money: number,
+        scene: Scene
+    ) {
+        if (!this.isPlacing()) return money;
+        if (!this.selectedPlacementImage) return money;
 
         const position = {
             x: this.selectedPlacementImage.x,
@@ -74,10 +87,13 @@ export const ObjectPlacer: ObjectPlacerType = {
             staticSprites.find((s) => s.x === position.x && s.y === position.y)
         ) {
             console.warn(`Overlapping: ${position.x} / ${position.y}`);
-            return;
+            return money;
         }
         switch (this.selectedPlacementObj) {
             case "rails": {
+                if (money < costs.rails) return money;
+                money -= costs.rails;
+
                 const isHorizontal: boolean = !!sprites.rails.find(
                     (r) =>
                         r.y === position.y &&
@@ -94,6 +110,9 @@ export const ObjectPlacer: ObjectPlacerType = {
                 break;
             }
             case "station": {
+                if (money < costs.station) return money;
+                money -= costs.station;
+
                 const station = new Station(
                     scene,
                     StationNameOptions.pop() ?? "No more station names",
@@ -109,9 +128,11 @@ export const ObjectPlacer: ObjectPlacerType = {
                 );
             }
         }
+
+        return money;
     },
 
-    initialize: function (sprites: SpriteCollection, scene: Scene) {
+    initialize: function (scene: Scene) {
         this.uiContainer = scene.add.container(0, 0);
 
         this.uiContainer.setDepth(Number.MAX_SAFE_INTEGER);
@@ -152,17 +173,5 @@ export const ObjectPlacer: ObjectPlacerType = {
             });
             this.uiContainer.add(buttonContainer);
         }
-
-        scene.input.on(
-            "pointerdown",
-            (p: Input.Pointer) => {
-                if (p.leftButtonDown()) {
-                    if (this.isPlacing()) {
-                        this.placeSelectedObject(sprites, scene);
-                    }
-                }
-            },
-            this
-        );
     },
 };

@@ -12,6 +12,9 @@ export class Game extends Scene {
     background: GameObjects.Image;
     gameText: GameObjects.Text;
 
+    moneyText: GameObjects.Text;
+    money: number;
+
     objectPlacer = ObjectPlacer;
 
     sprites: SpriteCollection = {
@@ -33,15 +36,22 @@ export class Game extends Scene {
         }
 
         this.objectPlacer.update(this.cam, this);
+
+        this.moneyText
+            .setPosition(this.cam.scrollX + 20, this.cam.scrollY + 20)
+            .setText(`Money: ${this.money}`);
     }
 
     create() {
         this.cam = this.cameras.main;
         setupCamera(this.cam, this);
-        this.objectPlacer.initialize(this.sprites, this);
+        this.objectPlacer.initialize(this);
 
         this.background = this.add.image(512, 384, "background");
         this.background.setAlpha(0.5);
+
+        this.money = 10_000;
+        this.moneyText = this.add.text(20, 20, `Money: ${this.money}`);
 
         this.sprites.rails.push(
             // Left T
@@ -84,11 +94,34 @@ export class Game extends Scene {
         train2.stations = this.sprites.stations;
         train2.start(this);
 
+        // TODO: Set up game with goals
+        /*
+            Make placing rails cost money
+            Add requirements for connections between stations that spawn trains when connected
+            Make driving trains generate money
+            Add mountains, lakes, trees as blocking tiles
+        */
+
         // TODO: Add capacity to rails, stations
         // TODO: Add signals for track segments
         // TODO: Add a concept of time and let trains predict when they will be at certain places
         // TODO: Let trains pick their routes based on predictions of where other trains will block them
         // TODO: Add multi-track-stations (more platforms)
+        this.input.on(
+            "pointerdown",
+            (p: Input.Pointer) => {
+                if (p.leftButtonDown()) {
+                    if (this.objectPlacer.isPlacing()) {
+                        this.money = this.objectPlacer.placeSelectedObject(
+                            this.sprites,
+                            this.money,
+                            this
+                        );
+                    }
+                }
+            },
+            this
+        );
         EventBus.emit("current-scene-ready", this);
     }
 
