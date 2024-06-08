@@ -2,7 +2,7 @@ import { Rail } from "../../prefabs/Rail";
 import { Station } from "../../prefabs/Station";
 import { Train } from "../../prefabs/Train";
 
-export type SelectedPlacementObj = "rails" | "station" | null;
+export type PlacementObjectType = "rails" | "station";
 
 export type Point = { x: number; y: number };
 

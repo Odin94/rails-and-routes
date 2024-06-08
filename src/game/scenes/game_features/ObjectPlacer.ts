@@ -6,7 +6,7 @@ import {
     createStraightRailway,
 } from "../../prefabs/Rail";
 import { Station } from "../../prefabs/Station";
-import { Point, SelectedPlacementObj, SpriteCollection } from "./Types";
+import { Point, PlacementObjectType, SpriteCollection } from "./Types";
 
 export const StationNameOptions = [
     "Statington",
@@ -17,13 +17,13 @@ export const StationNameOptions = [
 ];
 
 export type ObjectPlacerType = {
-    selectedPlacementObj: SelectedPlacementObj;
+    selectedPlacementObj: PlacementObjectType | null;
     selectedPlacementImage: GameObjects.Image | null;
     uiContainer: GameObjects.Container | null;
     update: (cam: Cameras.Scene2D.Camera, scene: Scene) => undefined;
     isPlacing: () => boolean;
     placeSelectedObject: (sprites: SpriteCollection, scene: Scene) => undefined;
-    createUI: (scene: Scene) => undefined;
+    initialize: (sprites: SpriteCollection, scene: Scene) => undefined;
 };
 
 export const ObjectPlacer: ObjectPlacerType = {
@@ -111,7 +111,7 @@ export const ObjectPlacer: ObjectPlacerType = {
         }
     },
 
-    createUI: function (scene: Scene) {
+    initialize: function (sprites: SpriteCollection, scene: Scene) {
         this.uiContainer = scene.add.container(0, 0);
 
         this.uiContainer.setDepth(Number.MAX_SAFE_INTEGER);
@@ -124,56 +124,45 @@ export const ObjectPlacer: ObjectPlacerType = {
         // Buttons
         const buttonFrames: GameObjects.Rectangle[] = [];
 
-        // Rails button
-        const railsImage = scene.add.image(0, 0, "rails");
-        const railsFrame = scene.add
-            .rectangle(0, 0, 64, 64)
-            .setStrokeStyle(3, 0x000);
-        buttonFrames.push(railsFrame);
-        const railsButtonContainer = scene.add
-            .container(40, 55, [railsImage, railsFrame])
-            .setSize(64, 64)
-            .setScale(0.7)
-            .setInteractive();
-        railsButtonContainer.on("pointerdown", () => {
-            for (const frame of buttonFrames) {
-                frame.setStrokeStyle(3, 0x000);
-            }
-            railsFrame.setStrokeStyle(3, 0xfff);
+        // Type must match asset name for icon!
+        const buttonTypes: PlacementObjectType[] = ["rails", "station"];
+        for (const [i, type] of buttonTypes.entries()) {
+            const image = scene.add.image(0, 0, type);
+            const frame = scene.add
+                .rectangle(0, 0, 64, 64)
+                .setStrokeStyle(3, 0x000);
+            buttonFrames.push(frame);
+            const buttonContainer = scene.add
+                .container(40 + i * 64, 55, [image, frame])
+                .setSize(64, 64)
+                .setScale(0.7)
+                .setInteractive();
+            buttonContainer.on("pointerdown", () => {
+                for (const frame of buttonFrames) {
+                    frame.setStrokeStyle(3, 0x000);
+                }
+                frame.setStrokeStyle(3, 0xfff);
 
-            this.selectedPlacementObj = "rails";
-            this.selectedPlacementImage?.destroy();
-            this.selectedPlacementImage = scene.add
-                .image(0, 0, "rails")
-                .setAlpha(0.75)
-                .setTint(0x80d8ff);
-        });
-        this.uiContainer.add(railsButtonContainer);
+                this.selectedPlacementObj = type;
+                this.selectedPlacementImage?.destroy();
+                this.selectedPlacementImage = scene.add
+                    .image(0, 0, type)
+                    .setAlpha(0.75)
+                    .setTint(0x80d8ff);
+            });
+            this.uiContainer.add(buttonContainer);
+        }
 
-        // Station button
-        const stationImage = scene.add.image(0, 0, "station");
-        const stationFrame = scene.add
-            .rectangle(0, 0, 64, 64)
-            .setStrokeStyle(3, 0x000);
-        buttonFrames.push(stationFrame);
-        const stationButtonContainer = scene.add
-            .container(40 + 64, 55, [stationImage, stationFrame])
-            .setSize(64, 64)
-            .setScale(0.7)
-            .setInteractive();
-        stationButtonContainer.on("pointerdown", () => {
-            for (const frame of buttonFrames) {
-                frame.setStrokeStyle(3, 0x000);
-            }
-            stationFrame.setStrokeStyle(3, 0xfff);
-
-            this.selectedPlacementObj = "station";
-            this.selectedPlacementImage?.destroy();
-            this.selectedPlacementImage = scene.add
-                .image(0, 0, "station")
-                .setAlpha(0.75)
-                .setTint(0x80d8ff);
-        });
-        this.uiContainer.add(stationButtonContainer);
+        scene.input.on(
+            "pointerdown",
+            (p: Input.Pointer) => {
+                if (p.leftButtonDown()) {
+                    if (this.isPlacing()) {
+                        this.placeSelectedObject(sprites, scene);
+                    }
+                }
+            },
+            this
+        );
     },
 };

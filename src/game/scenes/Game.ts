@@ -5,7 +5,7 @@ import { Station } from "../prefabs/Station";
 import { Train } from "../prefabs/Train";
 import { setupCamera } from "./game_features/Camera";
 import { SpriteCollection } from "./game_features/Types";
-import { ObjectPlacer, ObjectPlacerType } from "./game_features/ObjectPlacer";
+import { ObjectPlacer } from "./game_features/ObjectPlacer";
 
 export class Game extends Scene {
     cam: Cameras.Scene2D.Camera;
@@ -38,7 +38,7 @@ export class Game extends Scene {
     create() {
         this.cam = this.cameras.main;
         setupCamera(this.cam, this);
-        this.objectPlacer.createUI(this);
+        this.objectPlacer.initialize(this.sprites, this);
 
         this.background = this.add.image(512, 384, "background");
         this.background.setAlpha(0.5);
@@ -83,21 +83,6 @@ export class Game extends Scene {
         train2.rails = this.sprites.rails;
         train2.stations = this.sprites.stations;
         train2.start(this);
-
-        this.input.on(
-            "pointerdown",
-            (p: Input.Pointer) => {
-                if (p.leftButtonDown()) {
-                    if (this.objectPlacer.isPlacing()) {
-                        this.objectPlacer.placeSelectedObject(
-                            this.sprites,
-                            this
-                        );
-                    }
-                }
-            },
-            this
-        );
 
         // TODO: Add capacity to rails, stations
         // TODO: Add signals for track segments
