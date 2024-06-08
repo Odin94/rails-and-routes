@@ -1,8 +1,23 @@
 import { EventBus } from "../EventBus";
 import Phaser, { Scene, Cameras, GameObjects, Input } from "phaser";
 import { Train } from "../prefabs/Train";
-import { Rail, buildRailNetwork, createStraightRailway } from "../prefabs/Rail";
+import {
+    RAIL_GRID_SIZE,
+    Rail,
+    buildRailNetwork,
+    createStraightRailway,
+} from "../prefabs/Rail";
 import { Station } from "../prefabs/Station";
+
+export const StationNameOptions = [
+    "Statington",
+    "Quattro Stattioni",
+    "Il Straterone",
+    "Station Basin",
+    "Dank memes",
+];
+
+export type SelectedPlacementObj = "rails" | "station" | null;
 
 export class Game extends Scene {
     cam: Cameras.Scene2D.Camera;
@@ -10,7 +25,7 @@ export class Game extends Scene {
     gameText: GameObjects.Text;
     uiContainer: GameObjects.Container;
 
-    selectedPlacementObj: "rails" | "station" | null = null;
+    selectedPlacementObj: SelectedPlacementObj = null;
     selectedPlacementImage: GameObjects.Image | null = null;
 
     trains: Train[] = [];
@@ -101,12 +116,81 @@ export class Game extends Scene {
         train2.stations = this.stations;
         train2.start(this);
 
+        this.input.on(
+            "pointerdown",
+            (p: Input.Pointer) => {
+                if (p.leftButtonDown()) {
+                    if (
+                        this.selectedPlacementObj &&
+                        this.selectedPlacementImage
+                    ) {
+                        this.placeSelectedObject(
+                            {
+                                x: this.selectedPlacementImage.x,
+                                y: this.selectedPlacementImage.y,
+                            },
+                            this.selectedPlacementObj,
+                            this.rails,
+                            this.stations
+                        );
+                    }
+                }
+            },
+            this
+        );
+
         // TODO: Add capacity to rails, stations
         // TODO: Add signals for track segments
         // TODO: Add a concept of time and let trains predict when they will be at certain places
         // TODO: Let trains pick their routes based on predictions of where other trains will block them
         // TODO: Add multi-track-stations (more platforms)
         EventBus.emit("current-scene-ready", this);
+    }
+
+    placeSelectedObject(
+        position: { x: number; y: number },
+        selectedPlacementObj: SelectedPlacementObj,
+        rails: Rail[],
+        stations: Station[]
+    ) {
+        const sprites: GameObjects.Sprite[] = [...rails, ...stations];
+        if (sprites.find((s) => s.x === position.x && s.y === position.y)) {
+            console.warn(`Overlapping: ${position.x} / ${position.y}`);
+            return;
+        }
+        switch (selectedPlacementObj) {
+            case "rails": {
+                const isHorizontal: boolean = !!rails.find(
+                    (r) =>
+                        r.y === position.y &&
+                        (r.x === position.x - RAIL_GRID_SIZE ||
+                            r.x === position.x + RAIL_GRID_SIZE)
+                );
+                const rail = new Rail(
+                    this,
+                    position.x,
+                    position.y,
+                    isHorizontal ? 90 : 0
+                );
+                this.rails.push(rail);
+                break;
+            }
+            case "station": {
+                const station = new Station(
+                    this,
+                    StationNameOptions.pop() ?? "No more station names",
+                    position.x,
+                    position.y
+                );
+                this.stations.push(station);
+                break;
+            }
+            default: {
+                console.warn(
+                    `Unknown selectedPlacementObj: "${selectedPlacementObj}"`
+                );
+            }
+        }
     }
 
     createUI() {
