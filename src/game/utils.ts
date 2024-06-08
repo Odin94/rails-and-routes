@@ -12,6 +12,15 @@ export const absGridPosDiff = (a: GridObject, b: GridObject) =>
 export const sameGridPos = (a: GridObject, b: GridObject) =>
     absGridPosDiff(a, b) === 0;
 
+export const findPathBetweenStations = (
+    from: Station,
+    to: Station,
+    rails: Rail[]
+) => {
+    if (!from.rail || !to.rail) return [];
+    return findPath(from.rail, to.name, rails);
+};
+
 export const findPath = (
     startRail: Rail,
     stationName: string,
@@ -25,7 +34,7 @@ export const findPath = (
         (r) => r.connectedStation?.name === stationName
     );
     if (!stationRail) {
-        console.error(`No station rail for station ${stationName}!`);
+        console.warn(`No station rail for station ${stationName}!`);
         return [];
     }
     const stationRailNode: Node = { parent: undefined, rail: stationRail };

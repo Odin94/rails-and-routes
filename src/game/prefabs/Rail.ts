@@ -1,6 +1,7 @@
 import { Scene, GameObjects } from "phaser";
 import { Station } from "./Station";
 import { absGridPosDiff } from "../utils";
+import { SpriteCollection } from "../scenes/game_features/Types";
 
 export const RAIL_GRID_SIZE = 64;
 
@@ -60,7 +61,7 @@ export const createStraightRailway = (
     return rails;
 };
 
-export const buildRailNetwork = (rails: Rail[], stations: Station[]) => {
+export const buildRailNetwork = ({ rails, stations }: SpriteCollection) => {
     for (const rail of rails) {
         rail.neighbours = rails.filter((r) => absGridPosDiff(r, rail) === 1);
         rail.connectedStation = stations.find(

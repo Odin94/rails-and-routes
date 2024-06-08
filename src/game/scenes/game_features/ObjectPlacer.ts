@@ -25,14 +25,14 @@ export type ObjectPlacerType = {
     selectedPlacementObj: PlacementObjectType | null;
     selectedPlacementImage: GameObjects.Image | null;
     uiContainer: GameObjects.Container | null;
-    update: (cam: Cameras.Scene2D.Camera, scene: Scene) => undefined;
+    update: (cam: Cameras.Scene2D.Camera, scene: Scene) => void;
     isPlacing: () => boolean;
     placeSelectedObject: (
         sprites: SpriteCollection,
         money: number,
         scene: Scene
     ) => number;
-    initialize: (scene: Scene) => undefined;
+    initialize: (scene: Scene) => void;
 };
 
 export const ObjectPlacer: ObjectPlacerType = {

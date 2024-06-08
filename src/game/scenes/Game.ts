@@ -6,6 +6,10 @@ import { Train } from "../prefabs/Train";
 import { setupCamera } from "./game_features/Camera";
 import { SpriteCollection } from "./game_features/Types";
 import { ObjectPlacer } from "./game_features/ObjectPlacer";
+import {
+    StationConnectionChecker,
+    createStationConnectionCheker,
+} from "./game_features/StationConnectionChecker";
 
 export class Game extends Scene {
     cam: Cameras.Scene2D.Camera;
@@ -14,6 +18,8 @@ export class Game extends Scene {
 
     moneyText: GameObjects.Text;
     money: number;
+
+    stationConnectionChecker: StationConnectionChecker;
 
     objectPlacer = ObjectPlacer;
 
@@ -40,6 +46,8 @@ export class Game extends Scene {
         this.moneyText
             .setPosition(this.cam.scrollX + 20, this.cam.scrollY + 20)
             .setText(`Money: ${this.money}`);
+
+        this.stationConnectionChecker.update(this.sprites, this);
     }
 
     create() {
@@ -66,7 +74,7 @@ export class Game extends Scene {
         train.route = [
             { stationName: "Leftington" },
             { stationName: "Centropton" },
-            { stationName: "Bolevian" },
+            { stationName: "Hellola" },
         ];
         this.sprites.trains.push(train);
 
@@ -77,16 +85,22 @@ export class Game extends Scene {
         ];
         this.sprites.trains.push(train2);
 
+        const barzoople = new Station(this, "Barzoople", 15 * 64, 9 * 64);
+        const hellola = new Station(this, "Hellola", 3 * 64, 9 * 64);
         this.sprites.stations.push(
             ...[
                 new Station(this, "Leftington", 64, 3 * 64),
                 new Station(this, "Centropton", 8 * 64, 3 * 64),
                 new Station(this, "Mesenter", 8 * 64, 6 * 64),
-                new Station(this, "Bolevian", 3 * 64, 9 * 64),
+                barzoople,
+                hellola,
             ]
         );
+        this.stationConnectionChecker = createStationConnectionCheker([
+            { from: hellola, to: barzoople },
+        ]);
 
-        buildRailNetwork(this.sprites.rails, this.sprites.stations);
+        buildRailNetwork(this.sprites);
         train.rails = this.sprites.rails;
         train.stations = this.sprites.stations;
         train.start(this);
@@ -96,7 +110,6 @@ export class Game extends Scene {
 
         // TODO: Set up game with goals
         /*
-            Make placing rails cost money
             Add requirements for connections between stations that spawn trains when connected
             Make driving trains generate money
             Add mountains, lakes, trees as blocking tiles
@@ -117,6 +130,7 @@ export class Game extends Scene {
                             this.money,
                             this
                         );
+                        buildRailNetwork(this.sprites);
                     }
                 }
             },

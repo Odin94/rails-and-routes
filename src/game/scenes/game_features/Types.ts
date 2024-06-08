@@ -11,3 +11,8 @@ export type SpriteCollection = {
     rails: Rail[];
     stations: Station[];
 };
+
+export type StationConnection = {
+    from: Station;
+    to: Station;
+};
