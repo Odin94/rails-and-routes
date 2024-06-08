@@ -1,12 +1,12 @@
 import { EventBus } from "../EventBus";
-import { Scene, Cameras, GameObjects } from "phaser";
+import Phaser, { Scene, Cameras, GameObjects, Input } from "phaser";
 import { Train } from "../prefabs/Train";
 import { Rail, buildRailNetwork, createStraightRailway } from "../prefabs/Rail";
 import { Station } from "../prefabs/Station";
 import { absGridPosDiff, findPath, sameGridPos } from "../utils";
 
 export class Game extends Scene {
-    camera: Cameras.Scene2D.Camera;
+    cam: Cameras.Scene2D.Camera;
     background: GameObjects.Image;
     gameText: GameObjects.Text;
 
@@ -18,9 +18,17 @@ export class Game extends Scene {
         super("Game");
     }
 
+    update(time: number, delta: number) {
+        for (const train of this.trains) {
+            train.update(this, delta);
+        }
+        for (const station of this.stations) {
+            station.update(this.trains);
+        }
+    }
+
     create() {
-        this.camera = this.cameras.main;
-        this.camera.setBackgroundColor(0x00ff00);
+        this.setupCamera();
 
         this.background = this.add.image(512, 384, "background");
         this.background.setAlpha(0.5);
@@ -69,21 +77,75 @@ export class Game extends Scene {
         train2.start(this);
 
         // TODO: Add capacity to rails, stations
-        // TODO: Add switches
+        // TODO: Add signals for track segments
+        // TODO: Add a concept of time and let trains predict when they will be at certain places
+        // TODO: Let trains pick their routes based on predictions of where other trains will block them
         // TODO: Add multi-track-stations (more platforms)
+    }
+
+    setupCamera() {
+        this.cam = this.cameras.main;
+        this.cam.setBounds(-1000, -1000, 4000, 4000);
+        this.cam.setZoom(1, 1);
+        this.cam.setBackgroundColor(0x00ff00);
+
+        // Move camera with middle mouse
+        let prevCamPos = { x: 0, y: 0 };
+        this.input.on(
+            "pointerdown",
+            (p: Input.Pointer) => {
+                prevCamPos = { x: p.x, y: p.y };
+            },
+            this
+        );
+        this.input.on(
+            "pointermove",
+            (p: Input.Pointer) => {
+                if (this.input.activePointer.middleButtonDown()) {
+                    const deltaX = p.x - prevCamPos.x;
+                    const deltaY = p.y - prevCamPos.y;
+
+                    this.cam.scrollX -= deltaX / this.cam.zoom;
+                    this.cam.scrollY -= deltaY / this.cam.zoom;
+
+                    prevCamPos = { x: p.x, y: p.y };
+                }
+            },
+            this
+        );
+
+        // Zoom with scroll wheel
+        const minZoom = 0.25;
+        const maxZoom = 2;
+        this.input.on(
+            "wheel",
+            (
+                pointer: Input.Pointer,
+                gameObjects: any,
+                deltaX: number,
+                deltaY: number,
+                deltaZ: number
+            ) => {
+                if (deltaY > 0) {
+                    this.cam.zoom = Phaser.Math.Clamp(
+                        this.cam.zoom - 0.1,
+                        minZoom,
+                        maxZoom
+                    );
+                } else if (deltaY < 0) {
+                    this.cam.zoom = Phaser.Math.Clamp(
+                        this.cam.zoom + 0.1,
+                        minZoom,
+                        maxZoom
+                    );
+                }
+            },
+            this
+        );
     }
 
     changeScene() {
         this.scene.start("GameOver");
-    }
-
-    update(time: number, delta: number) {
-        for (const train of this.trains) {
-            train.update(this, delta);
-        }
-        for (const station of this.stations) {
-            station.update(this.trains);
-        }
     }
 }
 
