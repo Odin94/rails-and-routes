@@ -1,81 +1,49 @@
+import { Cameras, GameObjects, Input, Scene } from "phaser";
 import { EventBus } from "../EventBus";
-import Phaser, { Scene, Cameras, GameObjects, Input } from "phaser";
-import { Train } from "../prefabs/Train";
-import {
-    RAIL_GRID_SIZE,
-    Rail,
-    buildRailNetwork,
-    createStraightRailway,
-} from "../prefabs/Rail";
+import { buildRailNetwork, createStraightRailway } from "../prefabs/Rail";
 import { Station } from "../prefabs/Station";
-
-export const StationNameOptions = [
-    "Statington",
-    "Quattro Stattioni",
-    "Il Straterone",
-    "Station Basin",
-    "Dank memes",
-];
-
-export type SelectedPlacementObj = "rails" | "station" | null;
+import { Train } from "../prefabs/Train";
+import { setupCamera } from "./game_features/Camera";
+import { SpriteCollection } from "./game_features/Types";
+import { ObjectPlacer, ObjectPlacerType } from "./game_features/ObjectPlacer";
 
 export class Game extends Scene {
     cam: Cameras.Scene2D.Camera;
     background: GameObjects.Image;
     gameText: GameObjects.Text;
-    uiContainer: GameObjects.Container;
 
-    selectedPlacementObj: SelectedPlacementObj = null;
-    selectedPlacementImage: GameObjects.Image | null = null;
+    objectPlacer = ObjectPlacer;
 
-    trains: Train[] = [];
-    rails: Rail[] = [];
-    stations: Station[] = [];
+    sprites: SpriteCollection = {
+        trains: [],
+        rails: [],
+        stations: [],
+    };
 
     constructor() {
         super("Game");
     }
 
     update(time: number, delta: number) {
-        for (const train of this.trains) {
+        for (const train of this.sprites.trains) {
             train.update(this, delta);
         }
-        for (const station of this.stations) {
-            station.update(this.trains);
+        for (const station of this.sprites.stations) {
+            station.update(this.sprites.trains);
         }
 
-        // Position the container at the bottom right of the screen in case the window is resized
-        this.uiContainer.setPosition(
-            this.cam.scrollX + 10,
-            this.cam.scrollY + this.cam.height - 120
-        );
-
-        const mouseX =
-            (this.input.x - this.cam.centerX) / this.cam.zoom +
-            this.cam.width / 2 +
-            this.cam.scrollX;
-        const mouseY =
-            (this.input.y - this.cam.centerY) / this.cam.zoom +
-            this.cam.height / 2 +
-            this.cam.scrollY;
-        const snapX = Math.round(mouseX / 64) * 64;
-        const snapY = Math.round(mouseY / 64) * 64;
-
-        if (this.selectedPlacementImage) {
-            this.selectedPlacementImage.setPosition(snapX, snapY);
-        }
+        this.objectPlacer.update(this.cam, this);
     }
 
     create() {
         this.cam = this.cameras.main;
-        this.uiContainer = this.add.container(0, 0);
-        this.setupCamera();
-        this.createUI();
+        setupCamera(this.cam, this);
+        this.objectPlacer.createUI(this);
 
         this.background = this.add.image(512, 384, "background");
         this.background.setAlpha(0.5);
 
-        this.rails.push(
+        this.sprites.rails.push(
             // Left T
             ...createStraightRailway(this, { x: 0, y: 4 }, { x: 11, y: 4 }),
             ...createStraightRailway(this, { x: 4, y: 4 }, { x: 4, y: 10 }),
@@ -90,16 +58,16 @@ export class Game extends Scene {
             { stationName: "Centropton" },
             { stationName: "Bolevian" },
         ];
-        this.trains.push(train);
+        this.sprites.trains.push(train);
 
         const train2 = new Train(this, 12 * 64, 7 * 64);
         train2.route = [
             { stationName: "Centropton" },
             { stationName: "Mesenter" },
         ];
-        this.trains.push(train2);
+        this.sprites.trains.push(train2);
 
-        this.stations.push(
+        this.sprites.stations.push(
             ...[
                 new Station(this, "Leftington", 64, 3 * 64),
                 new Station(this, "Centropton", 8 * 64, 3 * 64),
@@ -108,30 +76,22 @@ export class Game extends Scene {
             ]
         );
 
-        buildRailNetwork(this.rails, this.stations);
-        train.rails = this.rails;
-        train.stations = this.stations;
+        buildRailNetwork(this.sprites.rails, this.sprites.stations);
+        train.rails = this.sprites.rails;
+        train.stations = this.sprites.stations;
         train.start(this);
-        train2.rails = this.rails;
-        train2.stations = this.stations;
+        train2.rails = this.sprites.rails;
+        train2.stations = this.sprites.stations;
         train2.start(this);
 
         this.input.on(
             "pointerdown",
             (p: Input.Pointer) => {
                 if (p.leftButtonDown()) {
-                    if (
-                        this.selectedPlacementObj &&
-                        this.selectedPlacementImage
-                    ) {
-                        this.placeSelectedObject(
-                            {
-                                x: this.selectedPlacementImage.x,
-                                y: this.selectedPlacementImage.y,
-                            },
-                            this.selectedPlacementObj,
-                            this.rails,
-                            this.stations
+                    if (this.objectPlacer.isPlacing()) {
+                        this.objectPlacer.placeSelectedObject(
+                            this.sprites,
+                            this
                         );
                     }
                 }
@@ -145,176 +105,6 @@ export class Game extends Scene {
         // TODO: Let trains pick their routes based on predictions of where other trains will block them
         // TODO: Add multi-track-stations (more platforms)
         EventBus.emit("current-scene-ready", this);
-    }
-
-    placeSelectedObject(
-        position: { x: number; y: number },
-        selectedPlacementObj: SelectedPlacementObj,
-        rails: Rail[],
-        stations: Station[]
-    ) {
-        const sprites: GameObjects.Sprite[] = [...rails, ...stations];
-        if (sprites.find((s) => s.x === position.x && s.y === position.y)) {
-            console.warn(`Overlapping: ${position.x} / ${position.y}`);
-            return;
-        }
-        switch (selectedPlacementObj) {
-            case "rails": {
-                const isHorizontal: boolean = !!rails.find(
-                    (r) =>
-                        r.y === position.y &&
-                        (r.x === position.x - RAIL_GRID_SIZE ||
-                            r.x === position.x + RAIL_GRID_SIZE)
-                );
-                const rail = new Rail(
-                    this,
-                    position.x,
-                    position.y,
-                    isHorizontal ? 90 : 0
-                );
-                this.rails.push(rail);
-                break;
-            }
-            case "station": {
-                const station = new Station(
-                    this,
-                    StationNameOptions.pop() ?? "No more station names",
-                    position.x,
-                    position.y
-                );
-                this.stations.push(station);
-                break;
-            }
-            default: {
-                console.warn(
-                    `Unknown selectedPlacementObj: "${selectedPlacementObj}"`
-                );
-            }
-        }
-    }
-
-    createUI() {
-        this.uiContainer.setDepth(Number.MAX_SAFE_INTEGER);
-
-        const menuBackground = this.add.graphics();
-        menuBackground.fillStyle(0xffffff, 0.8);
-        menuBackground.fillRect(0, 0, 250, 120);
-        this.uiContainer.add(menuBackground);
-
-        // Buttons
-        const buttonFrames: GameObjects.Rectangle[] = [];
-
-        // Rails button
-        const railsImage = this.add.image(0, 0, "rails");
-        const railsFrame = this.add
-            .rectangle(0, 0, 64, 64)
-            .setStrokeStyle(3, 0x000);
-        buttonFrames.push(railsFrame);
-        const railsButtonContainer = this.add
-            .container(40, 55, [railsImage, railsFrame])
-            .setSize(64, 64)
-            .setScale(0.7)
-            .setInteractive();
-        railsButtonContainer.on("pointerdown", () => {
-            for (const frame of buttonFrames) {
-                frame.setStrokeStyle(3, 0x000);
-            }
-            railsFrame.setStrokeStyle(3, 0xfff);
-
-            this.selectedPlacementObj = "rails";
-            this.selectedPlacementImage?.destroy();
-            this.selectedPlacementImage = this.add
-                .image(0, 0, "rails")
-                .setAlpha(0.75)
-                .setTint(0x80d8ff);
-        });
-        this.uiContainer.add(railsButtonContainer);
-
-        // Station button
-        const stationImage = this.add.image(0, 0, "station");
-        const stationFrame = this.add
-            .rectangle(0, 0, 64, 64)
-            .setStrokeStyle(3, 0x000);
-        buttonFrames.push(stationFrame);
-        const stationButtonContainer = this.add
-            .container(40 + 64, 55, [stationImage, stationFrame])
-            .setSize(64, 64)
-            .setScale(0.7)
-            .setInteractive();
-        stationButtonContainer.on("pointerdown", () => {
-            for (const frame of buttonFrames) {
-                frame.setStrokeStyle(3, 0x000);
-            }
-            stationFrame.setStrokeStyle(3, 0xfff);
-
-            this.selectedPlacementObj = "station";
-            this.selectedPlacementImage?.destroy();
-            this.selectedPlacementImage = this.add
-                .image(0, 0, "station")
-                .setAlpha(0.75)
-                .setTint(0x80d8ff);
-        });
-        this.uiContainer.add(stationButtonContainer);
-    }
-
-    setupCamera() {
-        this.cam.setBounds(-1000, -1000, 4000, 4000);
-        this.cam.setZoom(1, 1);
-        this.cam.setBackgroundColor(0x7cfc00);
-
-        // Move camera with middle mouse
-        let prevCamPos = { x: 0, y: 0 };
-        this.input.on(
-            "pointerdown",
-            (p: Input.Pointer) => {
-                prevCamPos = { x: p.x, y: p.y };
-            },
-            this
-        );
-        this.input.on(
-            "pointermove",
-            (p: Input.Pointer) => {
-                if (this.input.activePointer.middleButtonDown()) {
-                    const deltaX = p.x - prevCamPos.x;
-                    const deltaY = p.y - prevCamPos.y;
-
-                    this.cam.scrollX -= deltaX / this.cam.zoom;
-                    this.cam.scrollY -= deltaY / this.cam.zoom;
-
-                    prevCamPos = { x: p.x, y: p.y };
-                }
-            },
-            this
-        );
-
-        // Zoom with scroll wheel
-        const minZoom = 0.25;
-        const maxZoom = 2;
-        this.input.on(
-            "wheel",
-            (
-                pointer: Input.Pointer,
-                gameObjects: any,
-                deltaX: number,
-                deltaY: number,
-                deltaZ: number
-            ) => {
-                if (deltaY > 0) {
-                    this.cam.zoom = Phaser.Math.Clamp(
-                        this.cam.zoom - 0.1,
-                        minZoom,
-                        maxZoom
-                    );
-                } else if (deltaY < 0) {
-                    this.cam.zoom = Phaser.Math.Clamp(
-                        this.cam.zoom + 0.1,
-                        minZoom,
-                        maxZoom
-                    );
-                }
-            },
-            this
-        );
     }
 
     changeScene() {
