@@ -10,6 +10,9 @@ export class Game extends Scene {
     gameText: GameObjects.Text;
     uiContainer: GameObjects.Container;
 
+    selectedPlacementObj: "rails" | "station" | null = null;
+    selectedPlacementImage: GameObjects.Image | null = null;
+
     trains: Train[] = [];
     rails: Rail[] = [];
     stations: Station[] = [];
@@ -31,6 +34,21 @@ export class Game extends Scene {
             this.cam.scrollX + 10,
             this.cam.scrollY + this.cam.height - 120
         );
+
+        const mouseX =
+            (this.input.x - this.cam.centerX) / this.cam.zoom +
+            this.cam.width / 2 +
+            this.cam.scrollX;
+        const mouseY =
+            (this.input.y - this.cam.centerY) / this.cam.zoom +
+            this.cam.height / 2 +
+            this.cam.scrollY;
+        const snapX = Math.round(mouseX / 64) * 64;
+        const snapY = Math.round(mouseY / 64) * 64;
+
+        if (this.selectedPlacementImage) {
+            this.selectedPlacementImage.setPosition(snapX, snapY);
+        }
     }
 
     create() {
@@ -102,6 +120,7 @@ export class Game extends Scene {
         // Buttons
         const buttonFrames: GameObjects.Rectangle[] = [];
 
+        // Rails button
         const railsImage = this.add.image(0, 0, "rails");
         const railsFrame = this.add
             .rectangle(0, 0, 64, 64)
@@ -117,9 +136,17 @@ export class Game extends Scene {
                 frame.setStrokeStyle(3, 0x000);
             }
             railsFrame.setStrokeStyle(3, 0xfff);
+
+            this.selectedPlacementObj = "rails";
+            this.selectedPlacementImage?.destroy();
+            this.selectedPlacementImage = this.add
+                .image(0, 0, "rails")
+                .setAlpha(0.75)
+                .setTint(0x80d8ff);
         });
         this.uiContainer.add(railsButtonContainer);
 
+        // Station button
         const stationImage = this.add.image(0, 0, "station");
         const stationFrame = this.add
             .rectangle(0, 0, 64, 64)
@@ -135,26 +162,15 @@ export class Game extends Scene {
                 frame.setStrokeStyle(3, 0x000);
             }
             stationFrame.setStrokeStyle(3, 0xfff);
+
+            this.selectedPlacementObj = "station";
+            this.selectedPlacementImage?.destroy();
+            this.selectedPlacementImage = this.add
+                .image(0, 0, "station")
+                .setAlpha(0.75)
+                .setTint(0x80d8ff);
         });
         this.uiContainer.add(stationButtonContainer);
-
-        // for (let i = 0; i < 3; i++) {
-        //     const button = this.add
-        //         .text(20 + i * 60, 40, `Btn ${i + 1}`, {
-        //             fontSize: "16px",
-        //             color: "#000",
-        //             backgroundColor: "#ccc",
-        //             padding: { x: 10, y: 5 },
-        //             align: "center",
-        //         })
-        //         .setInteractive();
-
-        //     button.on("pointerdown", () => {
-        //         console.log(`Button ${i + 1} clicked`);
-        //     });
-
-        //     this.uiContainer.add(button);
-        // }
     }
 
     setupCamera() {
