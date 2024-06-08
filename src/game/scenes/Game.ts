@@ -3,12 +3,12 @@ import Phaser, { Scene, Cameras, GameObjects, Input } from "phaser";
 import { Train } from "../prefabs/Train";
 import { Rail, buildRailNetwork, createStraightRailway } from "../prefabs/Rail";
 import { Station } from "../prefabs/Station";
-import { absGridPosDiff, findPath, sameGridPos } from "../utils";
 
 export class Game extends Scene {
     cam: Cameras.Scene2D.Camera;
     background: GameObjects.Image;
     gameText: GameObjects.Text;
+    uiContainer: GameObjects.Container;
 
     trains: Train[] = [];
     rails: Rail[] = [];
@@ -25,15 +25,22 @@ export class Game extends Scene {
         for (const station of this.stations) {
             station.update(this.trains);
         }
+
+        // Position the container at the bottom right of the screen in case the window is resized
+        this.uiContainer.setPosition(
+            this.cam.scrollX + 10,
+            this.cam.scrollY + this.cam.height - 120
+        );
     }
 
     create() {
+        this.cam = this.cameras.main;
+        this.uiContainer = this.add.container(0, 0);
         this.setupCamera();
+        this.createUI();
 
         this.background = this.add.image(512, 384, "background");
         this.background.setAlpha(0.5);
-
-        EventBus.emit("current-scene-ready", this);
 
         this.rails.push(
             // Left T
@@ -81,13 +88,79 @@ export class Game extends Scene {
         // TODO: Add a concept of time and let trains predict when they will be at certain places
         // TODO: Let trains pick their routes based on predictions of where other trains will block them
         // TODO: Add multi-track-stations (more platforms)
+        EventBus.emit("current-scene-ready", this);
+    }
+
+    createUI() {
+        this.uiContainer.setDepth(Number.MAX_SAFE_INTEGER);
+
+        const menuBackground = this.add.graphics();
+        menuBackground.fillStyle(0xffffff, 0.8);
+        menuBackground.fillRect(0, 0, 250, 120);
+        this.uiContainer.add(menuBackground);
+
+        // Buttons
+        const buttonFrames: GameObjects.Rectangle[] = [];
+
+        const railsImage = this.add.image(0, 0, "rails");
+        const railsFrame = this.add
+            .rectangle(0, 0, 64, 64)
+            .setStrokeStyle(3, 0x000);
+        buttonFrames.push(railsFrame);
+        const railsButtonContainer = this.add
+            .container(40, 55, [railsImage, railsFrame])
+            .setSize(64, 64)
+            .setScale(0.7)
+            .setInteractive();
+        railsButtonContainer.on("pointerdown", () => {
+            for (const frame of buttonFrames) {
+                frame.setStrokeStyle(3, 0x000);
+            }
+            railsFrame.setStrokeStyle(3, 0xfff);
+        });
+        this.uiContainer.add(railsButtonContainer);
+
+        const stationImage = this.add.image(0, 0, "station");
+        const stationFrame = this.add
+            .rectangle(0, 0, 64, 64)
+            .setStrokeStyle(3, 0x000);
+        buttonFrames.push(stationFrame);
+        const stationButtonContainer = this.add
+            .container(40 + 64, 55, [stationImage, stationFrame])
+            .setSize(64, 64)
+            .setScale(0.7)
+            .setInteractive();
+        stationButtonContainer.on("pointerdown", () => {
+            for (const frame of buttonFrames) {
+                frame.setStrokeStyle(3, 0x000);
+            }
+            stationFrame.setStrokeStyle(3, 0xfff);
+        });
+        this.uiContainer.add(stationButtonContainer);
+
+        // for (let i = 0; i < 3; i++) {
+        //     const button = this.add
+        //         .text(20 + i * 60, 40, `Btn ${i + 1}`, {
+        //             fontSize: "16px",
+        //             color: "#000",
+        //             backgroundColor: "#ccc",
+        //             padding: { x: 10, y: 5 },
+        //             align: "center",
+        //         })
+        //         .setInteractive();
+
+        //     button.on("pointerdown", () => {
+        //         console.log(`Button ${i + 1} clicked`);
+        //     });
+
+        //     this.uiContainer.add(button);
+        // }
     }
 
     setupCamera() {
-        this.cam = this.cameras.main;
         this.cam.setBounds(-1000, -1000, 4000, 4000);
         this.cam.setZoom(1, 1);
-        this.cam.setBackgroundColor(0x00ff00);
+        this.cam.setBackgroundColor(0x7cfc00);
 
         // Move camera with middle mouse
         let prevCamPos = { x: 0, y: 0 };
